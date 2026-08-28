@@ -1,0 +1,249 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "检查 API 与 PostgreSQL 状态",
+        "tags": [
+          "健康检查"
+        ]
+      }
+    },
+    "/api/v1/owners": {
+      "get": {
+        "operationId": "OwnersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "分页查询负责人",
+        "tags": [
+          "负责人"
+        ]
+      },
+      "post": {
+        "operationId": "OwnersController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "新增负责人",
+        "tags": [
+          "负责人"
+        ]
+      }
+    },
+    "/api/v1/owners/{id}": {
+      "patch": {
+        "operationId": "OwnersController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "修改负责人",
+        "tags": [
+          "负责人"
+        ]
+      },
+      "delete": {
+        "operationId": "OwnersController_remove",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "删除未被引用的负责人",
+        "tags": [
+          "负责人"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "ProjectsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "筛选、搜索、排序和分页查询重点项目",
+        "tags": [
+          "重点项目"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "新增重点项目",
+        "tags": [
+          "重点项目"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "查询项目详情",
+        "tags": [
+          "重点项目"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectsController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "修改项目基础信息",
+        "tags": [
+          "重点项目"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_remove",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "删除项目",
+        "tags": [
+          "重点项目"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/owner": {
+      "patch": {
+        "operationId": "ProjectsController_setOwner",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "设置或取消负责人",
+        "tags": [
+          "重点项目"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/progress": {
+      "patch": {
+        "operationId": "ProjectsController_progress",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "修改进度并记录历史",
+        "tags": [
+          "重点项目"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/progress-history": {
+      "get": {
+        "operationId": "ProjectsController_history",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "查询进度变更历史",
+        "tags": [
+          "重点项目"
+        ]
+      }
+    },
+    "/api/v1/projects/import": {
+      "post": {
+        "operationId": "ImportsController_import",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "year"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "year": {
+                    "type": "integer",
+                    "example": 2026
+                  },
+                  "duplicateStrategy": {
+                    "type": "string",
+                    "enum": [
+                      "error",
+                      "skip",
+                      "update"
+                    ],
+                    "default": "error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "从.xlsx或.xls批量导入年度重点项目",
+        "tags": [
+          "Excel导入"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "年度重点项目管理 API",
+    "description": "年度重点项目、负责人、进度历史和Excel导入接口",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {}
+  }
+}

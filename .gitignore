@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+openapi.tmp.json
+*.log
+.idea/
+.vscode/

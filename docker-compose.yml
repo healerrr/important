@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: key_projects
+      POSTGRES_USER: key_projects
+      POSTGRES_PASSWORD: key_projects_local_only
+      TZ: UTC
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U key_projects -d key_projects']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://key_projects:key_projects_local_only@postgres:5432/key_projects?schema=public
+      CORS_ORIGINS: http://localhost:5173
+      LOG_LEVEL: info
+      SWAGGER_ENABLED: 'true'
+      EXCEL_MAX_FILE_SIZE_MB: 5
+      EXCEL_MAX_ROWS: 2000
+      IMPORT_RATE_LIMIT_TTL: 60000
+      IMPORT_RATE_LIMIT_LIMIT: 10
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres_data:

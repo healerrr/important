@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DuplicateStrategy {
+  error
+  skip
+  update
+}
+
+enum ImportStatus {
+  SUCCESS
+  FAILED
+}
+
+model Owner {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique @db.VarChar(50)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  projects  Project[]
+
+  @@map("owners")
+}
+
+model Project {
+  id           String               @id @default(uuid()) @db.Uuid
+  year         Int
+  name         String               @db.VarChar(200)
+  annualGoal   String               @default("") @map("annual_goal") @db.VarChar(2000)
+  ownerId      String?              @map("owner_id") @db.Uuid
+  progress     Int                  @default(0)
+  version      Int                  @default(1)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner        Owner?               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  progressLogs ProjectProgressLog[]
+
+  @@unique([year, name], map: "projects_year_name_key")
+  @@index([year], map: "projects_year_idx")
+  @@index([ownerId], map: "projects_owner_id_idx")
+  @@index([updatedAt], map: "projects_updated_at_idx")
+  @@map("projects")
+}
+
+model ProjectProgressLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  oldProgress Int      @map("old_progress")
+  newProgress Int      @map("new_progress")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt], map: "project_progress_logs_project_created_idx")
+  @@map("project_progress_logs")
+}
+
+model ImportBatch {
+  id                String            @id @default(uuid()) @db.Uuid
+  originalFilename  String            @map("original_filename") @db.VarChar(255)
+  year              Int
+  duplicateStrategy DuplicateStrategy @map("duplicate_strategy")
+  status            ImportStatus
+  totalRows         Int               @default(0) @map("total_rows")
+  importedRows      Int               @default(0) @map("imported_rows")
+  updatedRows       Int               @default(0) @map("updated_rows")
+  skippedRows       Int               @default(0) @map("skipped_rows")
+  errors            Json?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt], map: "import_batches_created_at_idx")
+  @@map("import_batches")
+}
