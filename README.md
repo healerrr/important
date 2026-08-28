@@ -73,6 +73,7 @@ API 会等待 PostgreSQL 健康，启动前自动执行 `prisma migrate deploy`�
 | ---------------- | -------------------------------- | -------------------- |
 | GET              | `/health`                        | API 与数据库健康检查 |
 | GET/POST         | `/owners`                        | 查询/新增负责人      |
+| GET              | `/owners/options`                | 内置负责人枚举列表   |
 | PATCH/DELETE     | `/owners/:id`                    | 修改/删除负责人      |
 | GET/POST         | `/projects`                      | 查询/新增项目        |
 | GET/PATCH/DELETE | `/projects/:id`                  | 详情/基础编辑/删除   |
@@ -109,7 +110,7 @@ API 会等待 PostgreSQL 健康，启动前自动执行 `prisma migrate deploy`�
 ```bash
 pnpm prisma:migrate:dev   # 开发时创建新 migration
 pnpm prisma:migrate:deploy
-pnpm seed                 # 可重复执行，写入 3 位负责人和 8 个 2026 项目
+pnpm seed                 # 可重复执行，写入内置负责人和 8 个 2026 项目
 pnpm prisma:studio
 ```
 

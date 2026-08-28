@@ -6,10 +6,24 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateOwnerDto } from './dto/create-owner.dto';
 import { QueryOwnersDto } from './dto/query-owners.dto';
 import { UpdateOwnerDto } from './dto/update-owner.dto';
+import type { OwnerOptionDto } from './dto/owner-option.dto';
+import { BUILT_IN_OWNER_NAMES } from './owner-options.constants';
 
 @Injectable()
 export class OwnersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async options(): Promise<OwnerOptionDto[]> {
+    const owners = await this.prisma.owner.findMany({
+      where: { isActive: true, name: { in: [...BUILT_IN_OWNER_NAMES] } },
+      select: { id: true, name: true },
+    });
+    const ownersByName = new Map(owners.map((owner) => [owner.name, owner]));
+    return BUILT_IN_OWNER_NAMES.flatMap((name) => {
+      const owner = ownersByName.get(name);
+      return owner ? [{ value: owner.id, label: owner.name }] : [];
+    });
+  }
 
   async list(q: QueryOwnersDto): Promise<{ items: unknown[]; meta: Record<string, unknown> }> {
     const where: Prisma.OwnerWhereInput = {

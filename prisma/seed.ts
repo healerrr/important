@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { BUILT_IN_OWNER_NAMES } from '../src/modules/owners/owner-options.constants';
 
 const prisma = new PrismaClient();
+
+const ownerNames = ['张伟', '李娜', '王磊', ...BUILT_IN_OWNER_NAMES] as const;
 
 const projects = [
   ['IT资产可视化平台', '实现IT资产全生命周期可视化管理', '张伟', 72],
@@ -15,7 +18,7 @@ const projects = [
 
 async function main(): Promise<void> {
   const ownerIds = new Map<string, string>();
-  for (const name of ['张伟', '李娜', '王磊']) {
+  for (const name of ownerNames) {
     const owner = await prisma.owner.upsert({ where: { name }, update: {}, create: { name } });
     ownerIds.set(name, owner.id);
   }

@@ -16,6 +16,28 @@
         ]
       }
     },
+    "/api/v1/owners/options": {
+      "get": {
+        "operationId": "OwnersController_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerOptionsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "查询启用负责人枚举，用于下拉框或选择器",
+        "tags": [
+          "负责人"
+        ]
+      }
+    },
     "/api/v1/owners": {
       "get": {
         "operationId": "OwnersController_list",
@@ -244,6 +266,38 @@
   "tags": [],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "OwnerOptionDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "example": "d4bc5cb6-e5e4-4452-b0cf-33c101aa0181"
+          },
+          "label": {
+            "type": "string",
+            "example": "袁志刚"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ]
+      },
+      "OwnerOptionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerOptionDto"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    }
   }
 }
