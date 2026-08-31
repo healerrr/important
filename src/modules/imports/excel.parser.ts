@@ -11,7 +11,7 @@ export interface ParsedProjectRow {
   name: string;
   annualGoal: string;
   department: string | null;
-  status: ProjectStatus | null;
+  status: ProjectStatus;
   ownerName: string | null;
   progress: number;
 }
@@ -51,14 +51,15 @@ export function parseProgress(value: unknown): number | null {
   return Math.round(n);
 }
 
-export function parseStatus(value: unknown): ProjectStatus | null {
+export function parseStatus(value: unknown): ProjectStatus {
   if (value === null || value === undefined || value === '') return ProjectStatus.NOT_STARTED;
   if (typeof value === 'string') {
     const text = value.trim();
     if (!text) return ProjectStatus.NOT_STARTED;
     if (statusMap[text]) return statusMap[text];
   }
-  return null;
+  // 未知状态值默认使用 NOT_STARTED
+  return ProjectStatus.NOT_STARTED;
 }
 
 export function parseExcel(
@@ -120,8 +121,6 @@ export function parseExcel(
       errors.push({ row, field: '年度目标', message: '年度目标不能超过 2000 个字符' });
     if (department && department.length > 100)
       errors.push({ row, field: '需求部门', message: '需求部门不能超过 100 个字符' });
-    if (status === null)
-      errors.push({ row, field: '状态', message: '状态值无效（支持：未启动/进行中/已完成/已暂停/已取消）' });
     if (ownerName && ownerName.length > 50)
       errors.push({ row, field: '负责人', message: '负责人不能超过 50 个字符' });
     if (progress === null) errors.push({ row, field: '当前进度', message: '进度必须在 0 到 100 之间' });
@@ -131,7 +130,7 @@ export function parseExcel(
         errors.push({ row, field: '项目名称', message: `与第${previous}行项目名称重复` });
       else names.set(name, row);
     }
-    if (name && progress !== null && status !== null)
+    if (name && progress !== null)
       rows.push({ row, name, annualGoal, department, status, ownerName, progress });
   }
   if (rows.length > maxRows)
