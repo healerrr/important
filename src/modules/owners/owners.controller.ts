@@ -18,6 +18,7 @@ import { CreateOwnerDto } from './dto/create-owner.dto';
 import { UpdateOwnerDto } from './dto/update-owner.dto';
 import { QueryOwnersDto } from './dto/query-owners.dto';
 import { OwnerOptionDto, OwnerOptionsResponseDto } from './dto/owner-option.dto';
+import { ProjectStatus, STATUS_LABELS } from '../projects/dto/project.dto';
 
 @ApiTags('负责人')
 @SkipThrottle()
@@ -30,6 +31,26 @@ export class OwnersController {
   @ApiOkResponse({ type: OwnerOptionsResponseDto })
   options(): Promise<OwnerOptionDto[]> {
     return this.service.options();
+  }
+
+  @Get('status-options')
+  @ApiOperation({ summary: '查询项目状态枚举，用于下拉框或选择器' })
+  @ApiOkResponse({
+    schema: {
+      example: [
+        { value: 'NOT_STARTED', label: '未启动' },
+        { value: 'IN_PROGRESS', label: '进行中' },
+        { value: 'COMPLETED', label: '已完成' },
+        { value: 'PAUSED', label: '已暂停' },
+        { value: 'CANCELLED', label: '已取消' },
+      ],
+    },
+  })
+  statusOptions(): Record<string, string>[] {
+    return Object.values(ProjectStatus).map((value) => ({
+      value,
+      label: STATUS_LABELS[value as ProjectStatus] || value,
+    }));
   }
 
   @Get() @ApiOperation({ summary: '分页查询负责人' }) list(
