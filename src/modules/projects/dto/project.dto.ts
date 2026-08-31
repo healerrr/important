@@ -35,6 +35,7 @@ export class CreateProjectDto {
   @IsOptional()
   annualGoal = '';
   @ApiPropertyOptional({ nullable: true })
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsUUID()
   @IsOptional()
   ownerId?: string | null;

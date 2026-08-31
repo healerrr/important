@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import * as Joi from 'joi';
 
 const schema = Joi.object<Record<string, unknown>>({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),

@@ -14,7 +14,19 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true, bodyParser: false });
   app.useLogger(app.get(Logger));
   const config = app.get(ConfigService);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+          imgSrc: ["'self'", "data:", "https:"],
+          fontSrc: ["'self'", "https:"],
+        },
+      },
+    }),
+  );
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
   const origins = config
