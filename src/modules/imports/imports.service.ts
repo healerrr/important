@@ -125,15 +125,6 @@ export class ImportsService {
 
       let importedRows = 0;
       for (const row of rows) {
-        let ownerId: string | null = null;
-        if (row.ownerName) {
-          const owner = await tx.owner.upsert({
-            where: { name: row.ownerName },
-            update: {},
-            create: { name: row.ownerName },
-          });
-          ownerId = owner.id;
-        }
         const project = await tx.project.create({
           data: {
             year: dto.year,
@@ -141,7 +132,12 @@ export class ImportsService {
             annualGoal: row.annualGoal,
             department: row.department,
             status: row.status ?? 'NOT_STARTED',
-            ownerId,
+            owners: {
+              connectOrCreate: row.ownerNames.map((name) => ({
+                where: { name },
+                create: { name },
+              })),
+            },
             progress: row.progress,
           },
         });
@@ -161,7 +157,12 @@ export class ImportsService {
           deletedRows: deletedProjects.count,
         },
       });
-      return { batchId: batch.id, totalRows: rows.length, importedRows, deletedRows: deletedProjects.count };
+      return {
+        batchId: batch.id,
+        totalRows: rows.length,
+        importedRows,
+        deletedRows: deletedProjects.count,
+      };
     });
   }
 }

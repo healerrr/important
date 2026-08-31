@@ -73,7 +73,7 @@ export class OwnersService {
 
   async remove(id: string): Promise<void> {
     await this.ensureExists(id);
-    const used = await this.prisma.project.count({ where: { ownerId: id } });
+    const used = await this.prisma.project.count({ where: { owners: { some: { id } } } });
     if (used)
       throw new ApiException(
         ErrorCode.OWNER_IN_USE,

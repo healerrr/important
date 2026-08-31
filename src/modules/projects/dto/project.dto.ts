@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayUnique,
   IsEnum,
+  IsArray,
   IsDefined,
   IsInt,
   IsNotEmpty,
@@ -11,7 +13,6 @@ import {
   Max,
   MaxLength,
   Min,
-  ValidateIf,
 } from 'class-validator';
 import { PaginationDto, trimTransform } from '../../../common/dto/pagination.dto';
 
@@ -60,11 +61,12 @@ export class CreateProjectDto {
   @IsEnum(ProjectStatus)
   @IsOptional()
   status?: ProjectStatus;
-  @ApiPropertyOptional({ nullable: true })
-  @Transform(({ value }) => (value === '' ? null : value))
-  @IsUUID()
+  @ApiPropertyOptional({ type: [String], format: 'uuid', default: [] })
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
   @IsOptional()
-  ownerId?: string | null;
+  ownerIds?: string[];
   @ApiPropertyOptional({ default: 0 })
   @Type(() => Number)
   @IsInt()
@@ -112,12 +114,13 @@ export class UpdateProjectDto {
   version!: number;
 }
 
-export class SetOwnerDto {
-  @ApiProperty({ nullable: true })
+export class SetOwnersDto {
+  @ApiProperty({ type: [String], format: 'uuid', example: [] })
   @IsDefined()
-  @ValidateIf((_object, value: unknown) => value !== null)
-  @IsUUID()
-  ownerId!: string | null;
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  ownerIds!: string[];
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()

@@ -18,7 +18,7 @@ import {
   CreateProjectDto,
   ProgressHistoryQueryDto,
   QueryProjectsDto,
-  SetOwnerDto,
+  SetOwnersDto,
   UpdateProgressDto,
   UpdateProjectDto,
 } from './dto/project.dto';
@@ -31,9 +31,18 @@ export class ProjectsController {
   @Get()
   @ApiOperation({ summary: '筛选、搜索、排序和分页查询重点项目' })
   @ApiQuery({ name: 'year', required: false, example: 2026, description: '年度' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词（项目名称/年度目标/需求部门）' })
+  @ApiQuery({
+    name: 'keyword',
+    required: false,
+    description: '搜索关键词（项目名称/年度目标/需求部门）',
+  })
   @ApiQuery({ name: 'ownerId', required: false, description: '负责人 ID' })
-  @ApiQuery({ name: 'status', required: false, enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'CANCELLED'], description: '项目状态' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'CANCELLED'],
+    description: '项目状态',
+  })
   @ApiQuery({ name: 'sortBy', required: false, example: 'updatedAt', description: '排序字段' })
   @ApiQuery({ name: 'sortOrder', required: false, example: 'desc', enum: ['asc', 'desc'] })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -57,11 +66,11 @@ export class ProjectsController {
   ): Promise<unknown> {
     return this.service.update(id, dto);
   }
-  @Patch(':id/owner') @ApiOperation({ summary: '设置或取消负责人' }) setOwner(
+  @Patch([':id/owner', ':id/owners']) @ApiOperation({ summary: '设置或清空多个负责人' }) setOwners(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: SetOwnerDto,
+    @Body() dto: SetOwnersDto,
   ): Promise<unknown> {
-    return this.service.setOwner(id, dto);
+    return this.service.setOwners(id, dto);
   }
   @Patch(':id/progress') @ApiOperation({ summary: '修改进度并记录历史' }) progress(
     @Param('id', ParseUUIDPipe) id: string,

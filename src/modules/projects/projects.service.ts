@@ -7,13 +7,13 @@ import {
   CreateProjectDto,
   ProgressHistoryQueryDto,
   QueryProjectsDto,
-  SetOwnerDto,
+  SetOwnersDto,
   UpdateProgressDto,
   UpdateProjectDto,
 } from './dto/project.dto';
 import { mapProject } from './project.mapper';
 
-const withOwner = { owner: true } as const;
+const withOwners = { owners: true } as const;
 
 @Injectable()
 export class ProjectsService {
@@ -22,7 +22,7 @@ export class ProjectsService {
   async list(q: QueryProjectsDto): Promise<{ items: unknown[]; meta: Record<string, unknown> }> {
     const where: Prisma.ProjectWhereInput = {
       year: q.year,
-      ...(q.ownerId ? { ownerId: q.ownerId } : {}),
+      ...(q.ownerId ? { owners: { some: { id: q.ownerId } } } : {}),
       ...(q.status ? { status: q.status } : {}),
       ...(q.keyword
         ? {
@@ -38,7 +38,7 @@ export class ProjectsService {
     const [items, total, latest] = await this.prisma.$transaction([
       this.prisma.project.findMany({
         where,
-        include: withOwner,
+        include: withOwners,
         orderBy,
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
@@ -67,7 +67,8 @@ export class ProjectsService {
   }
 
   async create(dto: CreateProjectDto): Promise<Record<string, unknown>> {
-    if (dto.ownerId) await this.requireOwner(dto.ownerId, false);
+    const ownerIds = dto.ownerIds ?? [];
+    await this.requireOwners(ownerIds, false);
     try {
       const project = await this.prisma.$transaction(async (tx) => {
         const created = await tx.project.create({
@@ -77,10 +78,10 @@ export class ProjectsService {
             annualGoal: dto.annualGoal,
             department: dto.department ?? null,
             status: dto.status ?? 'NOT_STARTED',
-            ownerId: dto.ownerId ?? null,
+            owners: { connect: ownerIds.map((id) => ({ id })) },
             progress: dto.progress,
           },
-          include: withOwner,
+          include: withOwners,
         });
         if (dto.progress > 0)
           await tx.projectProgressLog.create({
@@ -117,15 +118,25 @@ export class ProjectsService {
     }
   }
 
-  async setOwner(id: string, dto: SetOwnerDto): Promise<Record<string, unknown>> {
+  async setOwners(id: string, dto: SetOwnersDto): Promise<Record<string, unknown>> {
     await this.assertVersion(id, dto.version);
-    if (dto.ownerId) await this.requireOwner(dto.ownerId, true);
-    const result = await this.prisma.project.updateMany({
-      where: { id, version: dto.version },
-      data: { ownerId: dto.ownerId, version: { increment: 1 }, updatedAt: new Date() },
-    });
-    if (!result.count) throw this.versionConflict();
-    return mapProject(await this.getProject(id));
+    await this.requireOwners(dto.ownerIds, true);
+    try {
+      const project = await this.prisma.project.update({
+        where: { id, version: dto.version },
+        data: {
+          owners: { set: dto.ownerIds.map((ownerId) => ({ id: ownerId })) },
+          version: { increment: 1 },
+          updatedAt: new Date(),
+        },
+        include: withOwners,
+      });
+      return mapProject(project);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')
+        throw this.versionConflict();
+      throw error;
+    }
   }
 
   async updateProgress(id: string, dto: UpdateProgressDto): Promise<Record<string, unknown>> {
@@ -188,8 +199,8 @@ export class ProjectsService {
 
   private async getProject(
     id: string,
-  ): Promise<Prisma.ProjectGetPayload<{ include: { owner: true } }>> {
-    const project = await this.prisma.project.findUnique({ where: { id }, include: withOwner });
+  ): Promise<Prisma.ProjectGetPayload<{ include: { owners: true } }>> {
+    const project = await this.prisma.project.findUnique({ where: { id }, include: withOwners });
     if (!project) throw this.notFound();
     return project;
   }
@@ -198,11 +209,15 @@ export class ProjectsService {
     if (!p) throw this.notFound();
     if (p.version !== version) throw this.versionConflict();
   }
-  private async requireOwner(id: string, activeOnly: boolean): Promise<void> {
-    const owner = await this.prisma.owner.findUnique({ where: { id } });
-    if (!owner)
+  private async requireOwners(ids: string[], activeOnly: boolean): Promise<void> {
+    if (!ids.length) return;
+    const owners = await this.prisma.owner.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, isActive: true },
+    });
+    if (owners.length !== ids.length)
       throw new ApiException(ErrorCode.OWNER_NOT_FOUND, '负责人不存在', HttpStatus.BAD_REQUEST);
-    if (activeOnly && !owner.isActive)
+    if (activeOnly && owners.some((owner) => !owner.isActive))
       throw new ApiException(
         ErrorCode.OWNER_INACTIVE,
         '不能设置已停用的负责人',

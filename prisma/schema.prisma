@@ -38,17 +38,15 @@ model Project {
   annualGoal   String               @default("") @map("annual_goal") @db.VarChar(2000)
   department   String?              @db.VarChar(100)
   status       ProjectStatus        @default(NOT_STARTED)
-  ownerId      String?              @map("owner_id") @db.Uuid
   progress     Int                  @default(0)
   version      Int                  @default(1)
   createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
-  owner        Owner?               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  owners       Owner[]
   progressLogs ProjectProgressLog[]
 
   @@unique([year, name], map: "projects_year_name_key")
   @@index([year], map: "projects_year_idx")
-  @@index([ownerId], map: "projects_owner_id_idx")
   @@index([updatedAt], map: "projects_updated_at_idx")
   @@index([status], map: "projects_status_idx")
   @@map("projects")
@@ -67,15 +65,15 @@ model ProjectProgressLog {
 }
 
 model ImportBatch {
-  id                String            @id @default(uuid()) @db.Uuid
-  originalFilename  String            @map("original_filename") @db.VarChar(255)
-  year              Int
-  status            ImportStatus
-  totalRows         Int               @default(0) @map("total_rows")
-  importedRows      Int               @default(0) @map("imported_rows")
-  deletedRows       Int               @default(0) @map("deleted_rows")
-  errors            Json?
-  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  id               String       @id @default(uuid()) @db.Uuid
+  originalFilename String       @map("original_filename") @db.VarChar(255)
+  year             Int
+  status           ImportStatus
+  totalRows        Int          @default(0) @map("total_rows")
+  importedRows     Int          @default(0) @map("imported_rows")
+  deletedRows      Int          @default(0) @map("deleted_rows")
+  errors           Json?
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([createdAt], map: "import_batches_created_at_idx")
   @@map("import_batches")

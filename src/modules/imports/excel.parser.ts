@@ -12,7 +12,7 @@ export interface ParsedProjectRow {
   annualGoal: string;
   department: string | null;
   status: ProjectStatus;
-  ownerName: string | null;
+  ownerNames: string[];
   progress: number;
 }
 
@@ -21,9 +21,12 @@ const aliases = {
   annualGoal: ['年度目标', '项目目标', '目标', '需求'],
   department: ['需求部门', '部门'],
   status: ['状态', '项目状态'],
-  ownerName: ['负责人', '项目负责人', 'IT 人员', 'IT 人员', 'IT 人员', 'IT 人员', 'IT 人员'],
+  ownerNames: ['负责人', '项目负责人', 'IT人员'],
   progress: ['当前进度', '项目进度', '进度'],
 } as const;
+
+const normalizeHeader = (value: string): string =>
+  value.normalize('NFKC').replace(/\s+/gu, '').toLocaleLowerCase('en-US');
 
 const statusMap: Record<string, ProjectStatus> = {
   未启动: ProjectStatus.NOT_STARTED,
@@ -62,6 +65,19 @@ export function parseStatus(value: unknown): ProjectStatus {
   return ProjectStatus.NOT_STARTED;
 }
 
+export function parseOwnerNames(value: string): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const part of value.split(/[、,，;；/／\r\n]+/u)) {
+    const name = part.trim();
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
+}
+
 export function parseExcel(
   buffer: Buffer,
   maxRows: number,
@@ -85,17 +101,12 @@ export function parseExcel(
     return '';
   };
   const headers = matrix[0].map(cellText);
-  console.log('Excel headers:', headers);
-  console.log('Excel headers (hex):', headers.map(h => Buffer.from(h).toString('hex')));
-  console.log('ownerName aliases:', aliases.ownerName);
-  console.log('ownerName aliases (hex):', aliases.ownerName.map(a => Buffer.from(a).toString('hex')));
   const index = Object.fromEntries(
-    Object.entries(aliases).map(([key, names]) => [
-      key,
-      headers.findIndex((h) => (names as readonly string[]).includes(h)),
-    ]),
+    Object.entries(aliases).map(([key, names]) => {
+      const normalizedNames = new Set((names as readonly string[]).map(normalizeHeader));
+      return [key, headers.findIndex((header) => normalizedNames.has(normalizeHeader(header)))];
+    }),
   ) as Record<keyof typeof aliases, number>;
-  console.log('Column index mapping:', index);
   if (index.name < 0)
     return {
       rows: [],
@@ -117,7 +128,7 @@ export function parseExcel(
     const department = text(index.department) || null;
     const statusText = text(index.status);
     const status = statusText ? parseStatus(statusText) : ProjectStatus.NOT_STARTED;
-    const ownerName = text(index.ownerName) || null;
+    const ownerNames = parseOwnerNames(text(index.ownerNames));
     const progress = parseProgress(index.progress < 0 ? '' : cells[index.progress]);
     if (!name) errors.push({ row, field: '项目名称', message: '项目名称不能为空' });
     if (name.length > 200)
@@ -126,9 +137,12 @@ export function parseExcel(
       errors.push({ row, field: '年度目标', message: '年度目标不能超过 2000 个字符' });
     if (department && department.length > 100)
       errors.push({ row, field: '需求部门', message: '需求部门不能超过 100 个字符' });
-    if (ownerName && ownerName.length > 50)
-      errors.push({ row, field: '负责人', message: '负责人不能超过 50 个字符' });
-    if (progress === null) errors.push({ row, field: '当前进度', message: '进度必须在 0 到 100 之间' });
+    for (const ownerName of ownerNames) {
+      if (ownerName.length > 50)
+        errors.push({ row, field: '负责人', message: `负责人“${ownerName}”不能超过 50 个字符` });
+    }
+    if (progress === null)
+      errors.push({ row, field: '当前进度', message: '进度必须在 0 到 100 之间' });
     if (name) {
       const previous = names.get(name);
       if (previous)
@@ -136,7 +150,7 @@ export function parseExcel(
       else names.set(name, row);
     }
     if (name && progress !== null)
-      rows.push({ row, name, annualGoal, department, status, ownerName, progress });
+      rows.push({ row, name, annualGoal, department, status, ownerNames, progress });
   }
   if (rows.length > maxRows)
     errors.push({ row: 1, field: '文件', message: `有效数据行不能超过${maxRows}行` });
