@@ -11,7 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ProjectsService } from './projects.service';
 import {
@@ -28,9 +28,17 @@ import {
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly service: ProjectsService) {}
-  @Get() @ApiOperation({ summary: '筛选、搜索、排序和分页查询重点项目' }) list(
-    @Query() q: QueryProjectsDto,
-  ): Promise<unknown> {
+  @Get()
+  @ApiOperation({ summary: '筛选、搜索、排序和分页查询重点项目' })
+  @ApiQuery({ name: 'year', required: false, example: 2026, description: '年度' })
+  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词（项目名称/年度目标/需求部门）' })
+  @ApiQuery({ name: 'ownerId', required: false, description: '负责人 ID' })
+  @ApiQuery({ name: 'status', required: false, enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'CANCELLED'], description: '项目状态' })
+  @ApiQuery({ name: 'sortBy', required: false, example: 'updatedAt', description: '排序字段' })
+  @ApiQuery({ name: 'sortOrder', required: false, example: 'desc', enum: ['asc', 'desc'] })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, example: 20 })
+  list(@Query() q: QueryProjectsDto): Promise<unknown> {
     return this.service.list(q);
   }
   @Get(':id') @ApiOperation({ summary: '查询项目详情' }) findOne(
