@@ -19,6 +19,7 @@ export class ImportsService {
     file: Express.Multer.File | undefined,
     dto: ImportProjectsDto,
   ): Promise<Record<string, number | string>> {
+    console.log('Import DTO:', JSON.stringify(dto, null, 2));
     const filename = basename(file?.originalname ?? 'unknown');
     let totalRows = 0;
     try {

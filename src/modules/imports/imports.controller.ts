@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Post, UploadedFile, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ImportProjectsDto } from './dto/import-projects.dto';
@@ -25,7 +25,7 @@ export class ImportsController {
   })
   import(
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body() dto: ImportProjectsDto,
+    @Body(new ValidationPipe({ transform: true, whitelist: false })) dto: ImportProjectsDto,
   ): Promise<unknown> {
     return this.service.import(file, dto);
   }

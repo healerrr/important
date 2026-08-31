@@ -21,7 +21,7 @@ const aliases = {
   annualGoal: ['年度目标', '项目目标', '目标', '需求'],
   department: ['需求部门', '部门'],
   status: ['状态', '项目状态'],
-  ownerName: ['负责人', '项目负责人', 'IT 人员', 'IT 人员'],
+  ownerName: ['负责人', '项目负责人', 'IT 人员', 'IT 人员', 'IT 人员', 'IT 人员', 'IT 人员'],
   progress: ['当前进度', '项目进度', '进度'],
 } as const;
 
@@ -86,12 +86,16 @@ export function parseExcel(
   };
   const headers = matrix[0].map(cellText);
   console.log('Excel headers:', headers);
+  console.log('Excel headers (hex):', headers.map(h => Buffer.from(h).toString('hex')));
+  console.log('ownerName aliases:', aliases.ownerName);
+  console.log('ownerName aliases (hex):', aliases.ownerName.map(a => Buffer.from(a).toString('hex')));
   const index = Object.fromEntries(
     Object.entries(aliases).map(([key, names]) => [
       key,
       headers.findIndex((h) => (names as readonly string[]).includes(h)),
     ]),
   ) as Record<keyof typeof aliases, number>;
+  console.log('Column index mapping:', index);
   if (index.name < 0)
     return {
       rows: [],

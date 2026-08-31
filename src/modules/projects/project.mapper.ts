@@ -12,9 +12,9 @@ export function mapProject(project: ProjectWithOwner): Record<string, unknown> {
     department: project.department,
     status: project.status,
     statusLabel: STATUS_LABELS[project.status as ProjectStatus] || project.status,
-    owner: project.owner
-      ? { id: project.owner.id, name: project.owner.name, isActive: project.owner.isActive }
-      : null,
+    owners: project.owner
+      ? [{ id: project.owner.id, name: project.owner.name, isActive: project.owner.isActive }]
+      : [],
     progress: project.progress,
     version: project.version,
     createdAt: project.createdAt.toISOString(),
