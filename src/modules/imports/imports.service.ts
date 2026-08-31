@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DuplicateStrategy, ImportStatus, Prisma } from '@prisma/client';
+import { ImportStatus, Prisma } from '@prisma/client';
 import { basename, extname } from 'node:path';
 import { ErrorCode } from '../../common/constants/error-codes';
 import { ApiException } from '../../common/exceptions/api.exception';
@@ -68,7 +68,6 @@ export class ImportsService {
         data: {
           originalFilename: filename,
           year: dto.year,
-          duplicateStrategy: dto.duplicateStrategy,
           status: ImportStatus.FAILED,
           totalRows,
           errors: errors as Prisma.InputJsonValue,
@@ -118,29 +117,12 @@ export class ImportsService {
     rows: ParsedProjectRow[],
   ): Promise<Record<string, number | string>> {
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.project.findMany({
-        where: { year: dto.year, name: { in: rows.map((r) => r.name) } },
-        select: { id: true, name: true, progress: true },
+      // 全量覆盖：先删除该年度所有项目
+      const deletedProjects = await tx.project.deleteMany({
+        where: { year: dto.year },
       });
-      const byName = new Map(existing.map((p) => [p.name, p]));
-      if (dto.duplicateStrategy === DuplicateStrategy.error && existing.length) {
-        const errors = rows
-          .filter((r) => byName.has(r.name))
-          .map((r) => ({
-            row: r.row,
-            field: '项目名称',
-            message: `项目"${r.name}"在${dto.year}年度已存在`,
-          }));
-        throw new ApiException(
-          ErrorCode.EXCEL_DUPLICATE_PROJECT,
-          '存在同年度同名项目，未导入任何数据',
-          HttpStatus.CONFLICT,
-          { errors },
-        );
-      }
+
       let importedRows = 0;
-      let updatedRows = 0;
-      let skippedRows = 0;
       for (const row of rows) {
         let ownerId: string | null = null;
         if (row.ownerName) {
@@ -151,61 +133,34 @@ export class ImportsService {
           });
           ownerId = owner.id;
         }
-        const old = byName.get(row.name);
-        if (old && dto.duplicateStrategy === DuplicateStrategy.skip) {
-          skippedRows += 1;
-          continue;
-        }
-        if (old) {
-          await tx.project.update({
-            where: { id: old.id },
-            data: {
-              annualGoal: row.annualGoal,
-              department: row.department,
-              status: row.status ?? 'NOT_STARTED',
-              ownerId,
-              progress: row.progress,
-              version: { increment: 1 },
-              updatedAt: new Date(),
-            },
+        const project = await tx.project.create({
+          data: {
+            year: dto.year,
+            name: row.name,
+            annualGoal: row.annualGoal,
+            department: row.department,
+            status: row.status ?? 'NOT_STARTED',
+            ownerId,
+            progress: row.progress,
+          },
+        });
+        if (row.progress > 0)
+          await tx.projectProgressLog.create({
+            data: { projectId: project.id, oldProgress: 0, newProgress: row.progress },
           });
-          if (old.progress !== row.progress)
-            await tx.projectProgressLog.create({
-              data: { projectId: old.id, oldProgress: old.progress, newProgress: row.progress },
-            });
-          updatedRows += 1;
-        } else {
-          const project = await tx.project.create({
-            data: {
-              year: dto.year,
-              name: row.name,
-              annualGoal: row.annualGoal,
-              department: row.department,
-              status: row.status ?? 'NOT_STARTED',
-              ownerId,
-              progress: row.progress,
-            },
-          });
-          if (row.progress > 0)
-            await tx.projectProgressLog.create({
-              data: { projectId: project.id, oldProgress: 0, newProgress: row.progress },
-            });
-          importedRows += 1;
-        }
+        importedRows += 1;
       }
       const batch = await tx.importBatch.create({
         data: {
           originalFilename: filename,
           year: dto.year,
-          duplicateStrategy: dto.duplicateStrategy,
           status: ImportStatus.SUCCESS,
           totalRows: rows.length,
           importedRows,
-          updatedRows,
-          skippedRows,
+          deletedRows: deletedProjects.count,
         },
       });
-      return { batchId: batch.id, totalRows: rows.length, importedRows, updatedRows, skippedRows };
+      return { batchId: batch.id, totalRows: rows.length, importedRows, deletedRows: deletedProjects.count };
     });
   }
 }

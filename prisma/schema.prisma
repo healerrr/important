@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum DuplicateStrategy {
-  error
-  skip
-  update
-}
-
 enum ImportStatus {
   SUCCESS
   FAILED
@@ -76,12 +70,10 @@ model ImportBatch {
   id                String            @id @default(uuid()) @db.Uuid
   originalFilename  String            @map("original_filename") @db.VarChar(255)
   year              Int
-  duplicateStrategy DuplicateStrategy @map("duplicate_strategy")
   status            ImportStatus
   totalRows         Int               @default(0) @map("total_rows")
   importedRows      Int               @default(0) @map("imported_rows")
-  updatedRows       Int               @default(0) @map("updated_rows")
-  skippedRows       Int               @default(0) @map("skipped_rows")
+  deletedRows       Int               @default(0) @map("deleted_rows")
   errors            Json?
   createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
 
