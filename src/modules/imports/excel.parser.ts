@@ -17,7 +17,7 @@ export interface ParsedProjectRow {
 }
 
 const aliases = {
-  name: ['项目名称', '项目'],
+  name: ['项目名称', '项目', '标题'],
   annualGoal: ['年度目标', '项目目标', '目标', '需求'],
   department: ['需求部门', '部门'],
   status: ['状态', '项目状态'],

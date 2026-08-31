@@ -40,13 +40,15 @@ export class ImportsService {
         );
       }
       totalRows = parsed.rows.length;
-      if (parsed.errors.length)
+      if (parsed.errors.length) {
+        console.error('Excel validation errors:', JSON.stringify(parsed.errors, null, 2));
         throw new ApiException(
           ErrorCode.EXCEL_VALIDATION_FAILED,
           'Excel 文件存在数据错误',
           HttpStatus.UNPROCESSABLE_ENTITY,
           { errors: parsed.errors },
         );
+      }
       return await this.execute(filename, dto, parsed.rows);
     } catch (error) {
       const errors =
