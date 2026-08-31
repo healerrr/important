@@ -21,7 +21,7 @@ const aliases = {
   annualGoal: ['年度目标', '项目目标', '目标', '需求'],
   department: ['需求部门', '部门'],
   status: ['状态', '项目状态'],
-  ownerName: ['负责人', '项目负责人', 'IT 人员'],
+  ownerName: ['负责人', '项目负责人', 'IT 人员', 'IT 人员'],
   progress: ['当前进度', '项目进度', '进度'],
 } as const;
 
@@ -85,6 +85,7 @@ export function parseExcel(
     return '';
   };
   const headers = matrix[0].map(cellText);
+  console.log('Excel headers:', headers);
   const index = Object.fromEntries(
     Object.entries(aliases).map(([key, names]) => [
       key,
@@ -95,7 +96,7 @@ export function parseExcel(
     return {
       rows: [],
       errors: [
-        { row: 1, field: '项目名称', message: '缺少项目名称表头（支持"项目名称"或"项目"）' },
+        { row: 1, field: '项目名称', message: '缺少项目名称表头（支持"项目名称"/"项目"/"标题"）' },
       ],
     };
 
