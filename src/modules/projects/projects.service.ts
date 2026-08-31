@@ -23,11 +23,13 @@ export class ProjectsService {
     const where: Prisma.ProjectWhereInput = {
       year: q.year,
       ...(q.ownerId ? { ownerId: q.ownerId } : {}),
+      ...(q.status ? { status: q.status } : {}),
       ...(q.keyword
         ? {
             OR: [
               { name: { contains: q.keyword, mode: 'insensitive' } },
               { annualGoal: { contains: q.keyword, mode: 'insensitive' } },
+              { department: { contains: q.keyword, mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -73,6 +75,8 @@ export class ProjectsService {
             year: dto.year,
             name: dto.name,
             annualGoal: dto.annualGoal,
+            department: dto.department ?? null,
+            status: dto.status ?? 'NOT_STARTED',
             ownerId: dto.ownerId ?? null,
             progress: dto.progress,
           },
@@ -97,6 +101,8 @@ export class ProjectsService {
       ...(dto.year !== undefined ? { year: dto.year } : {}),
       ...(dto.name !== undefined ? { name: dto.name } : {}),
       ...(dto.annualGoal !== undefined ? { annualGoal: dto.annualGoal } : {}),
+      ...(dto.department !== undefined ? { department: dto.department } : {}),
+      ...(dto.status !== undefined ? { status: dto.status } : {}),
     };
     try {
       const result = await this.prisma.project.updateMany({

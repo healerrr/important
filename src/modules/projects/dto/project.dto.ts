@@ -15,6 +15,22 @@ import {
 } from 'class-validator';
 import { PaginationDto, trimTransform } from '../../../common/dto/pagination.dto';
 
+export enum ProjectStatus {
+  NOT_STARTED = 'NOT_STARTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  PAUSED = 'PAUSED',
+  CANCELLED = 'CANCELLED',
+}
+
+export const STATUS_LABELS: Record<ProjectStatus, string> = {
+  [ProjectStatus.NOT_STARTED]: '未启动',
+  [ProjectStatus.IN_PROGRESS]: '进行中',
+  [ProjectStatus.COMPLETED]: '已完成',
+  [ProjectStatus.PAUSED]: '已暂停',
+  [ProjectStatus.CANCELLED]: '已取消',
+};
+
 export class CreateProjectDto {
   @ApiProperty({ example: 2026 })
   @Type(() => Number)
@@ -22,18 +38,28 @@ export class CreateProjectDto {
   @Min(2000)
   @Max(2100)
   year!: number;
-  @ApiProperty({ example: 'IT资产可视化平台' })
+  @ApiProperty({ example: 'IT 资产可视化平台' })
   @Transform(trimTransform)
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   name!: string;
-  @ApiPropertyOptional({ example: '实现IT资产全生命周期可视化管理', default: '' })
+  @ApiPropertyOptional({ example: '实现 IT 资产全生命周期可视化管理', default: '' })
   @Transform(trimTransform)
   @IsString()
   @MaxLength(2000)
   @IsOptional()
   annualGoal = '';
+  @ApiPropertyOptional({ example: '技术部' })
+  @Transform(trimTransform)
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  department?: string;
+  @ApiPropertyOptional({ enum: ProjectStatus, default: ProjectStatus.NOT_STARTED })
+  @IsEnum(ProjectStatus)
+  @IsOptional()
+  status?: ProjectStatus;
   @ApiPropertyOptional({ nullable: true })
   @Transform(({ value }) => (value === '' ? null : value))
   @IsUUID()
@@ -69,6 +95,16 @@ export class UpdateProjectDto {
   @MaxLength(2000)
   @IsOptional()
   annualGoal?: string;
+  @ApiPropertyOptional({ example: '技术部' })
+  @Transform(trimTransform)
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  department?: string;
+  @ApiPropertyOptional({ enum: ProjectStatus })
+  @IsEnum(ProjectStatus)
+  @IsOptional()
+  status?: ProjectStatus;
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()
@@ -132,6 +168,10 @@ export class QueryProjectsDto extends PaginationDto {
   @IsUUID()
   @IsOptional()
   ownerId?: string;
+  @ApiPropertyOptional({ enum: ProjectStatus })
+  @IsEnum(ProjectStatus)
+  @IsOptional()
+  status?: ProjectStatus;
   @ApiPropertyOptional({ enum: ProjectSortBy, default: ProjectSortBy.updatedAt })
   @IsEnum(ProjectSortBy)
   @IsOptional()

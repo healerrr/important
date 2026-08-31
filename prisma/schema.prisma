@@ -29,11 +29,21 @@ model Owner {
   @@map("owners")
 }
 
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
 model Project {
   id           String               @id @default(uuid()) @db.Uuid
   year         Int
   name         String               @db.VarChar(200)
   annualGoal   String               @default("") @map("annual_goal") @db.VarChar(2000)
+  department   String?              @db.VarChar(100)
+  status       ProjectStatus        @default(NOT_STARTED)
   ownerId      String?              @map("owner_id") @db.Uuid
   progress     Int                  @default(0)
   version      Int                  @default(1)
@@ -46,6 +56,7 @@ model Project {
   @@index([year], map: "projects_year_idx")
   @@index([ownerId], map: "projects_owner_id_idx")
   @@index([updatedAt], map: "projects_updated_at_idx")
+  @@index([status], map: "projects_status_idx")
   @@map("projects")
 }
 

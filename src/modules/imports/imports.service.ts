@@ -25,7 +25,7 @@ export class ImportsService {
       if (!file)
         throw new ApiException(
           ErrorCode.EXCEL_INVALID_FILE,
-          '请选择Excel文件',
+          '请选择 Excel 文件',
           HttpStatus.BAD_REQUEST,
         );
       this.validateFile(file);
@@ -35,7 +35,7 @@ export class ImportsService {
       } catch {
         throw new ApiException(
           ErrorCode.EXCEL_INVALID_FILE,
-          'Excel文件损坏或格式不正确',
+          'Excel 文件损坏或格式不正确',
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
@@ -43,7 +43,7 @@ export class ImportsService {
       if (parsed.errors.length)
         throw new ApiException(
           ErrorCode.EXCEL_VALIDATION_FAILED,
-          'Excel文件存在数据错误',
+          'Excel 文件存在数据错误',
           HttpStatus.UNPROCESSABLE_ENTITY,
           { errors: parsed.errors },
         );
@@ -81,7 +81,7 @@ export class ImportsService {
     if (!['.xlsx', '.xls'].includes(ext))
       throw new ApiException(
         ErrorCode.EXCEL_INVALID_FILE,
-        '只接受.xlsx或.xls文件',
+        '只接受.xlsx 或.xls 文件',
         HttpStatus.BAD_REQUEST,
       );
     const zip = file.buffer.length >= 4 && file.buffer[0] === 0x50 && file.buffer[1] === 0x4b;
@@ -105,7 +105,7 @@ export class ImportsService {
     if (!allowed.includes(mime))
       throw new ApiException(
         ErrorCode.EXCEL_INVALID_FILE,
-        'Excel MIME类型不正确',
+        'Excel MIME 类型不正确',
         HttpStatus.BAD_REQUEST,
       );
   }
@@ -127,7 +127,7 @@ export class ImportsService {
           .map((r) => ({
             row: r.row,
             field: '项目名称',
-            message: `项目“${r.name}”在${dto.year}年度已存在`,
+            message: `项目"${r.name}"在${dto.year}年度已存在`,
           }));
         throw new ApiException(
           ErrorCode.EXCEL_DUPLICATE_PROJECT,
@@ -159,6 +159,8 @@ export class ImportsService {
             where: { id: old.id },
             data: {
               annualGoal: row.annualGoal,
+              department: row.department,
+              status: row.status ?? 'NOT_STARTED',
               ownerId,
               progress: row.progress,
               version: { increment: 1 },
@@ -176,6 +178,8 @@ export class ImportsService {
               year: dto.year,
               name: row.name,
               annualGoal: row.annualGoal,
+              department: row.department,
+              status: row.status ?? 'NOT_STARTED',
               ownerId,
               progress: row.progress,
             },
