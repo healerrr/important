@@ -1,4 +1,5 @@
 import * as XLSX from '@e965/xlsx';
+import { splitMultiSelectValues } from '../../common/utils/multi-select';
 import { ProjectStatus } from '../projects/dto/project.dto';
 
 export interface ExcelRowError {
@@ -65,21 +66,9 @@ export function parseStatus(value: unknown): ProjectStatus {
   return ProjectStatus.NOT_STARTED;
 }
 
-export function parseMultiSelectValues(value: string): string[] {
-  const names: string[] = [];
-  const seen = new Set<string>();
-  for (const part of value.split(/[、,，;；/／\r\n]+/u)) {
-    const name = part.trim();
-    if (name && !seen.has(name)) {
-      seen.add(name);
-      names.push(name);
-    }
-  }
-  return names;
-}
-
-export const parseOwnerNames = parseMultiSelectValues;
-export const parseDepartmentNames = parseMultiSelectValues;
+export const parseMultiSelectValues = splitMultiSelectValues;
+export const parseOwnerNames = splitMultiSelectValues;
+export const parseDepartmentNames = splitMultiSelectValues;
 
 export function parseExcel(
   buffer: Buffer,

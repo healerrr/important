@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ApiException } from '../../common/exceptions/api.exception';
 import { ErrorCode } from '../../common/constants/error-codes';
+import { splitMultiSelectValues } from '../../common/utils/multi-select';
 import { PrismaService } from '../../database/prisma.service';
 import {
   CreateProjectDto,
@@ -20,9 +21,10 @@ export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(q: QueryProjectsDto): Promise<{ items: unknown[]; meta: Record<string, unknown> }> {
+    const ownerIds = q.ownerIds?.length ? q.ownerIds : q.ownerId ? [q.ownerId] : [];
     const where: Prisma.ProjectWhereInput = {
       year: q.year,
-      ...(q.ownerId ? { owners: { some: { id: q.ownerId } } } : {}),
+      ...(ownerIds.length ? { owners: { some: { id: { in: ownerIds } } } } : {}),
       ...(q.status ? { status: q.status } : {}),
       ...(q.keyword
         ? {
@@ -67,7 +69,8 @@ export class ProjectsService {
   }
 
   async create(dto: CreateProjectDto): Promise<Record<string, unknown>> {
-    const ownerIds = dto.ownerIds ?? [];
+    const ownerIds = this.resolveOwnerIds(dto);
+    const departments = this.resolveDepartments(dto) ?? [];
     await this.requireOwners(ownerIds, false);
     try {
       const project = await this.prisma.$transaction(async (tx) => {
@@ -76,7 +79,7 @@ export class ProjectsService {
             year: dto.year,
             name: dto.name,
             annualGoal: dto.annualGoal,
-            departments: dto.departments ?? [],
+            departments,
             status: dto.status ?? 'NOT_STARTED',
             owners: { connect: ownerIds.map((id) => ({ id })) },
             progress: dto.progress,
@@ -98,11 +101,12 @@ export class ProjectsService {
 
   async update(id: string, dto: UpdateProjectDto): Promise<Record<string, unknown>> {
     await this.assertVersion(id, dto.version);
+    const departments = this.resolveDepartments(dto);
     const data: Prisma.ProjectUpdateManyMutationInput = {
       ...(dto.year !== undefined ? { year: dto.year } : {}),
       ...(dto.name !== undefined ? { name: dto.name } : {}),
       ...(dto.annualGoal !== undefined ? { annualGoal: dto.annualGoal } : {}),
-      ...(dto.departments !== undefined ? { departments: dto.departments } : {}),
+      ...(departments !== undefined ? { departments } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
     };
     try {
@@ -120,12 +124,13 @@ export class ProjectsService {
 
   async setOwners(id: string, dto: SetOwnersDto): Promise<Record<string, unknown>> {
     await this.assertVersion(id, dto.version);
-    await this.requireOwners(dto.ownerIds, true);
+    const ownerIds = this.resolveOwnerIds(dto);
+    await this.requireOwners(ownerIds, true);
     try {
       const project = await this.prisma.project.update({
         where: { id, version: dto.version },
         data: {
-          owners: { set: dto.ownerIds.map((ownerId) => ({ id: ownerId })) },
+          owners: { set: ownerIds.map((ownerId) => ({ id: ownerId })) },
           version: { increment: 1 },
           updatedAt: new Date(),
         },
@@ -223,6 +228,23 @@ export class ProjectsService {
         '不能设置已停用的负责人',
         HttpStatus.BAD_REQUEST,
       );
+  }
+  private resolveOwnerIds(dto: {
+    ownerIds?: string[];
+    ownerId?: string | string[] | null;
+  }): string[] {
+    if (dto.ownerIds !== undefined) return dto.ownerIds;
+    if (Array.isArray(dto.ownerId)) return [...new Set(dto.ownerId)];
+    return dto.ownerId ? [dto.ownerId] : [];
+  }
+  private resolveDepartments(dto: {
+    departments?: string[];
+    department?: string | string[] | null;
+  }): string[] | undefined {
+    if (dto.departments !== undefined) return dto.departments;
+    if (dto.department === undefined) return undefined;
+    if (Array.isArray(dto.department)) return splitMultiSelectValues(dto.department.join('、'));
+    return dto.department ? splitMultiSelectValues(dto.department) : [];
   }
   private notFound(): ApiException {
     return new ApiException(ErrorCode.PROJECT_NOT_FOUND, '重点项目不存在', HttpStatus.NOT_FOUND);

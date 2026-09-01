@@ -38,6 +38,13 @@ export class ProjectsController {
   })
   @ApiQuery({ name: 'ownerId', required: false, description: '负责人 ID' })
   @ApiQuery({
+    name: 'ownerIds',
+    required: false,
+    isArray: true,
+    type: String,
+    description: '负责人 ID 数组；也支持逗号分隔字符串',
+  })
+  @ApiQuery({
     name: 'status',
     required: false,
     enum: ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'CANCELLED'],

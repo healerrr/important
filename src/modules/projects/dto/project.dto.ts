@@ -13,6 +13,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { PaginationDto, trimTransform } from '../../../common/dto/pagination.dto';
 
@@ -21,6 +22,50 @@ const trimStringArray = ({ value }: TransformFnParams): unknown => {
   return Array.isArray(input)
     ? input.map((item: unknown) => (typeof item === 'string' ? item.trim() : item))
     : input;
+};
+
+const trimNullableString = ({ value }: TransformFnParams): unknown => {
+  const input: unknown = value;
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input))
+    return input.map((item: unknown) => (typeof item === 'string' ? item.trim() : item));
+  if (typeof input !== 'string') return input;
+  const trimmed = input.trim();
+  return trimmed || null;
+};
+
+const normalizeOptionalQueryValue = ({ value }: TransformFnParams): unknown => {
+  const input: unknown = value;
+  return input === '' || input === null || input === 'null' || input === 'undefined'
+    ? undefined
+    : input;
+};
+
+const normalizeQueryStringArray = ({ value }: TransformFnParams): unknown => {
+  const input: unknown = value;
+  if (
+    input === '' ||
+    input === null ||
+    input === undefined ||
+    input === 'null' ||
+    input === 'undefined'
+  )
+    return undefined;
+  if (Array.isArray(input))
+    return input.map((item: unknown) => (typeof item === 'string' ? item.trim() : item));
+  if (typeof input !== 'string') return input;
+  const trimmed = input.trim();
+  if (trimmed === '[]') return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (Array.isArray(parsed))
+        return parsed.map((item: unknown) => (typeof item === 'string' ? item.trim() : item));
+    } catch {
+      return [trimmed];
+    }
+  }
+  return trimmed.split(',').map((item) => item.trim());
 };
 
 export enum ProjectStatus {
@@ -67,6 +112,13 @@ export class CreateProjectDto {
   @MaxLength(100, { each: true })
   @IsOptional()
   departments?: string[];
+  @ApiPropertyOptional({ deprecated: true, nullable: true, example: '技术部' })
+  @Transform(trimNullableString)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(100, { each: true })
+  @IsOptional()
+  department?: string | string[] | null;
   @ApiPropertyOptional({ enum: ProjectStatus, default: ProjectStatus.NOT_STARTED })
   @IsEnum(ProjectStatus)
   @IsOptional()
@@ -77,6 +129,11 @@ export class CreateProjectDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   ownerIds?: string[];
+  @ApiPropertyOptional({ deprecated: true, nullable: true, format: 'uuid' })
+  @Transform(trimNullableString)
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  ownerId?: string | string[] | null;
   @ApiPropertyOptional({ default: 0 })
   @Type(() => Number)
   @IsInt()
@@ -116,6 +173,13 @@ export class UpdateProjectDto {
   @MaxLength(100, { each: true })
   @IsOptional()
   departments?: string[];
+  @ApiPropertyOptional({ deprecated: true, nullable: true, example: '技术部' })
+  @Transform(trimNullableString)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(100, { each: true })
+  @IsOptional()
+  department?: string | string[] | null;
   @ApiPropertyOptional({ enum: ProjectStatus })
   @IsEnum(ProjectStatus)
   @IsOptional()
@@ -128,12 +192,18 @@ export class UpdateProjectDto {
 }
 
 export class SetOwnersDto {
-  @ApiProperty({ type: [String], format: 'uuid', example: [] })
+  @ApiPropertyOptional({ type: [String], format: 'uuid', example: [] })
+  @ValidateIf((dto: SetOwnersDto) => dto.ownerId === undefined)
   @IsDefined()
   @IsArray()
   @ArrayUnique()
   @IsUUID('4', { each: true })
-  ownerIds!: string[];
+  ownerIds?: string[];
+  @ApiPropertyOptional({ deprecated: true, nullable: true, format: 'uuid' })
+  @Transform(trimNullableString)
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  ownerId?: string | string[] | null;
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsInt()
@@ -180,8 +250,16 @@ export class QueryProjectsDto extends PaginationDto {
   @MaxLength(200)
   @IsOptional()
   keyword?: string;
-  @ApiPropertyOptional()
-  @IsUUID()
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @Transform(normalizeQueryStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  ownerIds?: string[];
+  @ApiPropertyOptional({ format: 'uuid' })
+  @Transform(normalizeOptionalQueryValue)
+  @IsUUID('4')
   @IsOptional()
   ownerId?: string;
   @ApiPropertyOptional({ enum: ProjectStatus })

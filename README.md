@@ -82,7 +82,7 @@ API 会等待 PostgreSQL 健康，启动前自动执行 `prisma migrate deploy`�
 | GET              | `/projects/:id/progress-history` | 分页查询进度历史     |
 | POST             | `/projects/import`               | Excel 批量导入       |
 
-列表支持年度、关键字、负责人、分页和白名单排序。新增或设置项目负责人时使用 `ownerIds` 数组，需求部门使用 `departments` 字符串数组；项目响应使用 `owners` 和 `departments` 数组。项目基础信息、负责人和进度更新均使用请求中的 `version` 做乐观锁；冲突返回 409。单条响应为 `{ "data": ... }`，列表为 `{ "data": [], "meta": ... }`。每个请求继承或生成 `X-Request-Id`，错误不会暴露堆栈、内部路径或数据库详情。
+列表支持年度、关键字、负责人、分页和白名单排序。负责人筛选同时支持单值 `ownerId` 和多值 `ownerIds`。新增或设置项目负责人时推荐使用 `ownerIds` 数组，需求部门推荐使用 `departments` 字符串数组；为兼容旧前端，请求仍接受单值 `ownerId` 和 `department`，服务端会自动归一为数组。项目响应使用 `owners` 和 `departments` 数组。项目基础信息、负责人和进度更新均使用请求中的 `version` 做乐观锁；冲突返回 409。单条响应为 `{ "data": ... }`，列表为 `{ "data": [], "meta": ... }`。每个请求继承或生成 `X-Request-Id`，错误不会暴露堆栈、内部路径或数据库详情。
 
 ## Excel 导入
 
