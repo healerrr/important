@@ -10,7 +10,7 @@ describe('Project mapper', () => {
       year: 2026,
       name: '重点项目',
       annualGoal: '',
-      department: null,
+      departments: ['质量部', '技术部'],
       status: ProjectStatus.NOT_STARTED,
       progress: 0,
       version: 1,
@@ -34,7 +34,10 @@ describe('Project mapper', () => {
       ],
     };
 
-    expect(mapProject(project).owners).toEqual([
+    const mapped = mapProject(project);
+
+    expect(mapped.departments).toEqual(['质量部', '技术部']);
+    expect(mapped.owners).toEqual([
       { id: 'owner-1', name: '李红', isActive: true },
       { id: 'owner-2', name: '袁志刚', isActive: true },
     ]);

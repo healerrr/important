@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform, type TransformFnParams, Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsEnum,
@@ -15,6 +15,13 @@ import {
   Min,
 } from 'class-validator';
 import { PaginationDto, trimTransform } from '../../../common/dto/pagination.dto';
+
+const trimStringArray = ({ value }: TransformFnParams): unknown => {
+  const input: unknown = value;
+  return Array.isArray(input)
+    ? input.map((item: unknown) => (typeof item === 'string' ? item.trim() : item))
+    : input;
+};
 
 export enum ProjectStatus {
   NOT_STARTED = 'NOT_STARTED',
@@ -51,12 +58,15 @@ export class CreateProjectDto {
   @MaxLength(2000)
   @IsOptional()
   annualGoal = '';
-  @ApiPropertyOptional({ example: '技术部' })
-  @Transform(trimTransform)
-  @IsString()
-  @MaxLength(100)
+  @ApiPropertyOptional({ type: [String], example: ['技术部', '质量部'], default: [] })
+  @Transform(trimStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(100, { each: true })
   @IsOptional()
-  department?: string;
+  departments?: string[];
   @ApiPropertyOptional({ enum: ProjectStatus, default: ProjectStatus.NOT_STARTED })
   @IsEnum(ProjectStatus)
   @IsOptional()
@@ -97,12 +107,15 @@ export class UpdateProjectDto {
   @MaxLength(2000)
   @IsOptional()
   annualGoal?: string;
-  @ApiPropertyOptional({ example: '技术部' })
-  @Transform(trimTransform)
-  @IsString()
-  @MaxLength(100)
+  @ApiPropertyOptional({ type: [String], example: ['技术部', '质量部'] })
+  @Transform(trimStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(100, { each: true })
   @IsOptional()
-  department?: string;
+  departments?: string[];
   @ApiPropertyOptional({ enum: ProjectStatus })
   @IsEnum(ProjectStatus)
   @IsOptional()

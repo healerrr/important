@@ -130,7 +130,7 @@ export class ImportsService {
             year: dto.year,
             name: row.name,
             annualGoal: row.annualGoal,
-            department: row.department,
+            departments: row.departmentNames,
             status: row.status ?? 'NOT_STARTED',
             owners: {
               connectOrCreate: row.ownerNames.map((name) => ({

@@ -9,7 +9,7 @@ export function mapProject(project: ProjectWithOwners): Record<string, unknown> 
     year: project.year,
     name: project.name,
     annualGoal: project.annualGoal,
-    department: project.department,
+    departments: project.departments,
     status: project.status,
     statusLabel: STATUS_LABELS[project.status] || project.status,
     owners: [...project.owners]

@@ -10,7 +10,7 @@ export interface ParsedProjectRow {
   row: number;
   name: string;
   annualGoal: string;
-  department: string | null;
+  departmentNames: string[];
   status: ProjectStatus;
   ownerNames: string[];
   progress: number;
@@ -19,7 +19,7 @@ export interface ParsedProjectRow {
 const aliases = {
   name: ['项目名称', '项目', '标题'],
   annualGoal: ['年度目标', '项目目标', '目标', '需求'],
-  department: ['需求部门', '部门'],
+  departmentNames: ['需求部门', '部门'],
   status: ['状态', '项目状态'],
   ownerNames: ['负责人', '项目负责人', 'IT人员'],
   progress: ['当前进度', '项目进度', '进度'],
@@ -65,7 +65,7 @@ export function parseStatus(value: unknown): ProjectStatus {
   return ProjectStatus.NOT_STARTED;
 }
 
-export function parseOwnerNames(value: string): string[] {
+export function parseMultiSelectValues(value: string): string[] {
   const names: string[] = [];
   const seen = new Set<string>();
   for (const part of value.split(/[、,，;；/／\r\n]+/u)) {
@@ -77,6 +77,9 @@ export function parseOwnerNames(value: string): string[] {
   }
   return names;
 }
+
+export const parseOwnerNames = parseMultiSelectValues;
+export const parseDepartmentNames = parseMultiSelectValues;
 
 export function parseExcel(
   buffer: Buffer,
@@ -125,7 +128,7 @@ export function parseExcel(
     const text = (column: number): string => (column < 0 ? '' : cellText(cells[column]));
     const name = text(index.name);
     const annualGoal = text(index.annualGoal);
-    const department = text(index.department) || null;
+    const departmentNames = parseDepartmentNames(text(index.departmentNames));
     const statusText = text(index.status);
     const status = statusText ? parseStatus(statusText) : ProjectStatus.NOT_STARTED;
     const ownerNames = parseOwnerNames(text(index.ownerNames));
@@ -135,8 +138,14 @@ export function parseExcel(
       errors.push({ row, field: '项目名称', message: '项目名称不能超过 200 个字符' });
     if (annualGoal.length > 2000)
       errors.push({ row, field: '年度目标', message: '年度目标不能超过 2000 个字符' });
-    if (department && department.length > 100)
-      errors.push({ row, field: '需求部门', message: '需求部门不能超过 100 个字符' });
+    for (const departmentName of departmentNames) {
+      if (departmentName.length > 100)
+        errors.push({
+          row,
+          field: '需求部门',
+          message: `需求部门“${departmentName}”不能超过 100 个字符`,
+        });
+    }
     for (const ownerName of ownerNames) {
       if (ownerName.length > 50)
         errors.push({ row, field: '负责人', message: `负责人“${ownerName}”不能超过 50 个字符` });
@@ -150,7 +159,7 @@ export function parseExcel(
       else names.set(name, row);
     }
     if (name && progress !== null)
-      rows.push({ row, name, annualGoal, department, status, ownerNames, progress });
+      rows.push({ row, name, annualGoal, departmentNames, status, ownerNames, progress });
   }
   if (rows.length > maxRows)
     errors.push({ row: 1, field: '文件', message: `有效数据行不能超过${maxRows}行` });

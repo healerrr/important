@@ -36,7 +36,7 @@ model Project {
   year         Int
   name         String               @db.VarChar(200)
   annualGoal   String               @default("") @map("annual_goal") @db.VarChar(2000)
-  department   String?              @db.VarChar(100)
+  departments  String[]             @default([]) @db.VarChar(100)
   status       ProjectStatus        @default(NOT_STARTED)
   progress     Int                  @default(0)
   version      Int                  @default(1)

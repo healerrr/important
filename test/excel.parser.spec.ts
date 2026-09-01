@@ -1,5 +1,10 @@
 import * as XLSX from '@e965/xlsx';
-import { parseExcel, parseOwnerNames, parseProgress } from '../src/modules/imports/excel.parser';
+import {
+  parseDepartmentNames,
+  parseExcel,
+  parseOwnerNames,
+  parseProgress,
+} from '../src/modules/imports/excel.parser';
 
 describe('Excel parser', () => {
   it.each([
@@ -22,6 +27,13 @@ describe('Excel parser', () => {
       '王辉2',
     ]);
   });
+  it('splits and de-duplicates multiple department names', () => {
+    expect(parseDepartmentNames('技术部、质量部，技术部; 财务部')).toEqual([
+      '技术部',
+      '质量部',
+      '财务部',
+    ]);
+  });
   it('maps aliases, ignores blank rows and collects all row errors', () => {
     const sheet = XLSX.utils.aoa_to_sheet([
       ['项目', '目标', '项目负责人', '进度'],
@@ -41,7 +53,7 @@ describe('Excel parser', () => {
   it.each(['IT人员', 'IT 人员'])('maps the %s column to the project owner', (ownerHeader) => {
     const sheet = XLSX.utils.aoa_to_sheet([
       ['标题', '需求', '状态', ownerHeader, '需求部门'],
-      ['A', '目标A', '进行中', '李红、袁志刚', '业务部'],
+      ['A', '目标A', '进行中', '李红、袁志刚', '业务部、质量部'],
     ]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, sheet, '项目');
@@ -54,6 +66,7 @@ describe('Excel parser', () => {
       row: 2,
       name: 'A',
       ownerNames: ['李红', '袁志刚'],
+      departmentNames: ['业务部', '质量部'],
     });
   });
 });

@@ -29,7 +29,7 @@ export class ProjectsService {
             OR: [
               { name: { contains: q.keyword, mode: 'insensitive' } },
               { annualGoal: { contains: q.keyword, mode: 'insensitive' } },
-              { department: { contains: q.keyword, mode: 'insensitive' } },
+              { departments: { has: q.keyword } },
             ],
           }
         : {}),
@@ -76,7 +76,7 @@ export class ProjectsService {
             year: dto.year,
             name: dto.name,
             annualGoal: dto.annualGoal,
-            department: dto.department ?? null,
+            departments: dto.departments ?? [],
             status: dto.status ?? 'NOT_STARTED',
             owners: { connect: ownerIds.map((id) => ({ id })) },
             progress: dto.progress,
@@ -102,7 +102,7 @@ export class ProjectsService {
       ...(dto.year !== undefined ? { year: dto.year } : {}),
       ...(dto.name !== undefined ? { name: dto.name } : {}),
       ...(dto.annualGoal !== undefined ? { annualGoal: dto.annualGoal } : {}),
-      ...(dto.department !== undefined ? { department: dto.department } : {}),
+      ...(dto.departments !== undefined ? { departments: dto.departments } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
     };
     try {
