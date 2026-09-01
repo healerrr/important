@@ -1,11 +1,11 @@
-import type { Owner, Project } from '@prisma/client';
+import type { Project } from '@prisma/client';
 import { ProjectStatus } from '@prisma/client';
 import { mapProject } from '../src/modules/projects/project.mapper';
 
 describe('Project mapper', () => {
-  it('returns every project owner as a sorted array', () => {
+  it('returns owners and departments as string arrays', () => {
     const timestamp = new Date('2026-08-31T00:00:00.000Z');
-    const project: Project & { owners: Owner[] } = {
+    const project: Project = {
       id: 'project-1',
       year: 2026,
       name: '重点项目',
@@ -16,30 +16,12 @@ describe('Project mapper', () => {
       version: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
-      owners: [
-        {
-          id: 'owner-2',
-          name: '袁志刚',
-          isActive: true,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        },
-        {
-          id: 'owner-1',
-          name: '李红',
-          isActive: true,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        },
-      ],
+      owners: ['袁志刚', '李红'],
     };
 
     const mapped = mapProject(project);
 
     expect(mapped.departments).toEqual(['质量部', '技术部']);
-    expect(mapped.owners).toEqual([
-      { id: 'owner-1', name: '李红', isActive: true },
-      { id: 'owner-2', name: '袁志刚', isActive: true },
-    ]);
+    expect(mapped.owners).toEqual(['袁志刚', '李红']);
   });
 });

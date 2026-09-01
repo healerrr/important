@@ -14,17 +14,15 @@ import {
 } from './dto/project.dto';
 import { mapProject } from './project.mapper';
 
-const withOwners = { owners: true } as const;
-
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(q: QueryProjectsDto): Promise<{ items: unknown[]; meta: Record<string, unknown> }> {
-    const ownerIds = q.ownerIds?.length ? q.ownerIds : q.ownerId ? [q.ownerId] : [];
+    const owners = this.resolveOwners(q);
     const where: Prisma.ProjectWhereInput = {
       year: q.year,
-      ...(ownerIds.length ? { owners: { some: { id: { in: ownerIds } } } } : {}),
+      ...(owners.length ? { owners: { hasSome: owners } } : {}),
       ...(q.status ? { status: q.status } : {}),
       ...(q.keyword
         ? {
@@ -40,7 +38,6 @@ export class ProjectsService {
     const [items, total, latest] = await this.prisma.$transaction([
       this.prisma.project.findMany({
         where,
-        include: withOwners,
         orderBy,
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
@@ -69,9 +66,8 @@ export class ProjectsService {
   }
 
   async create(dto: CreateProjectDto): Promise<Record<string, unknown>> {
-    const ownerIds = this.resolveOwnerIds(dto);
+    const owners = this.resolveOwners(dto);
     const departments = this.resolveDepartments(dto) ?? [];
-    await this.requireOwners(ownerIds, false);
     try {
       const project = await this.prisma.$transaction(async (tx) => {
         const created = await tx.project.create({
@@ -81,10 +77,9 @@ export class ProjectsService {
             annualGoal: dto.annualGoal,
             departments,
             status: dto.status ?? 'NOT_STARTED',
-            owners: { connect: ownerIds.map((id) => ({ id })) },
+            owners,
             progress: dto.progress,
           },
-          include: withOwners,
         });
         if (dto.progress > 0)
           await tx.projectProgressLog.create({
@@ -124,17 +119,15 @@ export class ProjectsService {
 
   async setOwners(id: string, dto: SetOwnersDto): Promise<Record<string, unknown>> {
     await this.assertVersion(id, dto.version);
-    const ownerIds = this.resolveOwnerIds(dto);
-    await this.requireOwners(ownerIds, true);
+    const owners = this.resolveOwners(dto);
     try {
       const project = await this.prisma.project.update({
         where: { id, version: dto.version },
         data: {
-          owners: { set: ownerIds.map((ownerId) => ({ id: ownerId })) },
+          owners,
           version: { increment: 1 },
           updatedAt: new Date(),
         },
-        include: withOwners,
       });
       return mapProject(project);
     } catch (error) {
@@ -202,10 +195,8 @@ export class ProjectsService {
     });
   }
 
-  private async getProject(
-    id: string,
-  ): Promise<Prisma.ProjectGetPayload<{ include: { owners: true } }>> {
-    const project = await this.prisma.project.findUnique({ where: { id }, include: withOwners });
+  private async getProject(id: string): Promise<Prisma.ProjectGetPayload<object>> {
+    const project = await this.prisma.project.findUnique({ where: { id } });
     if (!project) throw this.notFound();
     return project;
   }
@@ -214,28 +205,15 @@ export class ProjectsService {
     if (!p) throw this.notFound();
     if (p.version !== version) throw this.versionConflict();
   }
-  private async requireOwners(ids: string[], activeOnly: boolean): Promise<void> {
-    if (!ids.length) return;
-    const owners = await this.prisma.owner.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, isActive: true },
-    });
-    if (owners.length !== ids.length)
-      throw new ApiException(ErrorCode.OWNER_NOT_FOUND, '负责人不存在', HttpStatus.BAD_REQUEST);
-    if (activeOnly && owners.some((owner) => !owner.isActive))
-      throw new ApiException(
-        ErrorCode.OWNER_INACTIVE,
-        '不能设置已停用的负责人',
-        HttpStatus.BAD_REQUEST,
-      );
-  }
-  private resolveOwnerIds(dto: {
+  private resolveOwners(dto: {
+    owners?: string[];
     ownerIds?: string[];
     ownerId?: string | string[] | null;
   }): string[] {
-    if (dto.ownerIds !== undefined) return dto.ownerIds;
-    if (Array.isArray(dto.ownerId)) return [...new Set(dto.ownerId)];
-    return dto.ownerId ? [dto.ownerId] : [];
+    if (dto.owners !== undefined) return splitMultiSelectValues(dto.owners.join('、'));
+    if (dto.ownerIds !== undefined) return splitMultiSelectValues(dto.ownerIds.join('、'));
+    if (Array.isArray(dto.ownerId)) return splitMultiSelectValues(dto.ownerId.join('、'));
+    return dto.ownerId ? splitMultiSelectValues(dto.ownerId) : [];
   }
   private resolveDepartments(dto: {
     departments?: string[];

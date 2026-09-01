@@ -17,13 +17,10 @@ const projects = [
 ] as const;
 
 async function main(): Promise<void> {
-  const ownerIds = new Map<string, string>();
   for (const name of ownerNames) {
-    const owner = await prisma.owner.upsert({ where: { name }, update: {}, create: { name } });
-    ownerIds.set(name, owner.id);
+    await prisma.owner.upsert({ where: { name }, update: {}, create: { name } });
   }
   for (const [name, annualGoal, ownerName, progress] of projects) {
-    const ownerId = ownerName ? ownerIds.get(ownerName) : undefined;
     const project = await prisma.project.upsert({
       where: { year_name: { year: 2026, name } },
       update: {},
@@ -31,7 +28,7 @@ async function main(): Promise<void> {
         year: 2026,
         name,
         annualGoal,
-        owners: ownerId ? { connect: { id: ownerId } } : undefined,
+        owners: ownerName ? [ownerName] : [],
         progress,
       },
     });

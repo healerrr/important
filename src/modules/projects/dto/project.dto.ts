@@ -9,7 +9,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -36,9 +35,9 @@ const trimNullableString = ({ value }: TransformFnParams): unknown => {
 
 const normalizeOptionalQueryValue = ({ value }: TransformFnParams): unknown => {
   const input: unknown = value;
-  return input === '' || input === null || input === 'null' || input === 'undefined'
-    ? undefined
-    : input;
+  if (input === '' || input === null || input === 'null' || input === 'undefined') return undefined;
+  if (typeof input !== 'string') return input;
+  return input.trim() || undefined;
 };
 
 const normalizeQueryStringArray = ({ value }: TransformFnParams): unknown => {
@@ -123,15 +122,29 @@ export class CreateProjectDto {
   @IsEnum(ProjectStatus)
   @IsOptional()
   status?: ProjectStatus;
-  @ApiPropertyOptional({ type: [String], format: 'uuid', default: [] })
+  @ApiPropertyOptional({ type: [String], example: ['kc', '苏春雨'], default: [] })
+  @Transform(trimStringArray)
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
+  @IsOptional()
+  owners?: string[];
+  @ApiPropertyOptional({ deprecated: true, type: [String], example: ['kc', '苏春雨'] })
+  @Transform(trimStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
   @IsOptional()
   ownerIds?: string[];
-  @ApiPropertyOptional({ deprecated: true, nullable: true, format: 'uuid' })
+  @ApiPropertyOptional({ deprecated: true, nullable: true, example: '苏春雨' })
   @Transform(trimNullableString)
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
   @IsOptional()
   ownerId?: string | string[] | null;
   @ApiPropertyOptional({ default: 0 })
@@ -192,16 +205,33 @@ export class UpdateProjectDto {
 }
 
 export class SetOwnersDto {
-  @ApiPropertyOptional({ type: [String], format: 'uuid', example: [] })
-  @ValidateIf((dto: SetOwnersDto) => dto.ownerId === undefined)
+  @ApiPropertyOptional({ type: [String], example: ['kc', '苏春雨'] })
+  @Transform(trimStringArray)
+  @ValidateIf(
+    (dto: SetOwnersDto) =>
+      dto.owners !== undefined || (dto.ownerIds === undefined && dto.ownerId === undefined),
+  )
   @IsDefined()
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
+  owners?: string[];
+  @ApiPropertyOptional({ deprecated: true, type: [String], example: ['kc', '苏春雨'] })
+  @Transform(trimStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
+  @IsOptional()
   ownerIds?: string[];
-  @ApiPropertyOptional({ deprecated: true, nullable: true, format: 'uuid' })
+  @ApiPropertyOptional({ deprecated: true, nullable: true, example: '苏春雨' })
   @Transform(trimNullableString)
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
   @IsOptional()
   ownerId?: string | string[] | null;
   @ApiProperty({ example: 1 })
@@ -250,16 +280,29 @@ export class QueryProjectsDto extends PaginationDto {
   @MaxLength(200)
   @IsOptional()
   keyword?: string;
-  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @ApiPropertyOptional({ type: [String], example: ['kc', '苏春雨'] })
   @Transform(normalizeQueryStringArray)
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
+  @IsOptional()
+  owners?: string[];
+  @ApiPropertyOptional({ deprecated: true, type: [String], example: ['kc', '苏春雨'] })
+  @Transform(normalizeQueryStringArray)
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(50, { each: true })
   @IsOptional()
   ownerIds?: string[];
-  @ApiPropertyOptional({ format: 'uuid' })
+  @ApiPropertyOptional({ deprecated: true, example: '苏春雨' })
   @Transform(normalizeOptionalQueryValue)
-  @IsUUID('4')
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   @IsOptional()
   ownerId?: string;
   @ApiPropertyOptional({ enum: ProjectStatus })

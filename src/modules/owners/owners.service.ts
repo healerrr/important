@@ -21,7 +21,7 @@ export class OwnersService {
     const ownersByName = new Map(owners.map((owner) => [owner.name, owner]));
     return BUILT_IN_OWNER_NAMES.flatMap((name) => {
       const owner = ownersByName.get(name);
-      return owner ? [{ value: owner.id, label: owner.name }] : [];
+      return owner ? [{ value: owner.name, label: owner.name }] : [];
     });
   }
 
@@ -61,9 +61,29 @@ export class OwnersService {
   }
 
   async update(id: string, dto: UpdateOwnerDto): Promise<unknown> {
-    await this.ensureExists(id);
+    const current = await this.getOwner(id);
     try {
-      return await this.prisma.owner.update({ where: { id }, data: dto });
+      return await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.owner.update({ where: { id }, data: dto });
+        if (dto.name !== undefined && dto.name !== current.name) {
+          const projects = await tx.project.findMany({
+            where: { owners: { has: current.name } },
+            select: { id: true, owners: true },
+          });
+          for (const project of projects) {
+            const owners = [
+              ...new Set(
+                project.owners.map((owner) => (owner === current.name ? dto.name! : owner)),
+              ),
+            ];
+            await tx.project.update({
+              where: { id: project.id },
+              data: { owners, version: { increment: 1 }, updatedAt: new Date() },
+            });
+          }
+        }
+        return updated;
+      });
     } catch (e) {
       if (this.isUnique(e))
         throw new ApiException(ErrorCode.OWNER_DUPLICATE, '负责人姓名已存在', HttpStatus.CONFLICT);
@@ -72,8 +92,8 @@ export class OwnersService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.ensureExists(id);
-    const used = await this.prisma.project.count({ where: { owners: { some: { id } } } });
+    const owner = await this.getOwner(id);
+    const used = await this.prisma.project.count({ where: { owners: { has: owner.name } } });
     if (used)
       throw new ApiException(
         ErrorCode.OWNER_IN_USE,
@@ -83,9 +103,14 @@ export class OwnersService {
     await this.prisma.owner.delete({ where: { id } });
   }
 
-  private async ensureExists(id: string): Promise<void> {
-    if (!(await this.prisma.owner.findUnique({ where: { id }, select: { id: true } })))
+  private async getOwner(id: string): Promise<{ id: string; name: string }> {
+    const owner = await this.prisma.owner.findUnique({
+      where: { id },
+      select: { id: true, name: true },
+    });
+    if (!owner)
       throw new ApiException(ErrorCode.OWNER_NOT_FOUND, '负责人不存在', HttpStatus.NOT_FOUND);
+    return owner;
   }
   private isUnique(e: unknown): boolean {
     return e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';

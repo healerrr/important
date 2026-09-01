@@ -13,12 +13,11 @@ enum ImportStatus {
 }
 
 model Owner {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @unique @db.VarChar(50)
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  projects  Project[]
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(50)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("owners")
 }
@@ -36,13 +35,13 @@ model Project {
   year         Int
   name         String               @db.VarChar(200)
   annualGoal   String               @default("") @map("annual_goal") @db.VarChar(2000)
+  owners       String[]             @default([]) @db.VarChar(50)
   departments  String[]             @default([]) @db.VarChar(100)
   status       ProjectStatus        @default(NOT_STARTED)
   progress     Int                  @default(0)
   version      Int                  @default(1)
   createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
-  owners       Owner[]
   progressLogs ProjectProgressLog[]
 
   @@unique([year, name], map: "projects_year_name_key")

@@ -123,6 +123,13 @@ export class ImportsService {
         where: { year: dto.year },
       });
 
+      const importedOwnerNames = [...new Set(rows.flatMap((row) => row.ownerNames))];
+      if (importedOwnerNames.length)
+        await tx.owner.createMany({
+          data: importedOwnerNames.map((name) => ({ name })),
+          skipDuplicates: true,
+        });
+
       let importedRows = 0;
       for (const row of rows) {
         const project = await tx.project.create({
@@ -132,12 +139,7 @@ export class ImportsService {
             annualGoal: row.annualGoal,
             departments: row.departmentNames,
             status: row.status ?? 'NOT_STARTED',
-            owners: {
-              connectOrCreate: row.ownerNames.map((name) => ({
-                where: { name },
-                create: { name },
-              })),
-            },
+            owners: row.ownerNames,
             progress: row.progress,
           },
         });

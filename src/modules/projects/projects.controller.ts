@@ -36,13 +36,20 @@ export class ProjectsController {
     required: false,
     description: '搜索关键词（项目名称/年度目标/需求部门）',
   })
-  @ApiQuery({ name: 'ownerId', required: false, description: '负责人 ID' })
+  @ApiQuery({ name: 'ownerId', required: false, description: '负责人名称（兼容旧字段）' })
   @ApiQuery({
     name: 'ownerIds',
     required: false,
     isArray: true,
     type: String,
-    description: '负责人 ID 数组；也支持逗号分隔字符串',
+    description: '负责人名称数组（兼容旧字段）；也支持逗号分隔字符串',
+  })
+  @ApiQuery({
+    name: 'owners',
+    required: false,
+    isArray: true,
+    type: String,
+    description: '负责人名称数组；也支持逗号分隔字符串',
   })
   @ApiQuery({
     name: 'status',
